@@ -1,0 +1,20 @@
+{
+  "name": "dsh-harness-control",
+  "version": "0.1.0",
+  "description": "Manage the DeepSeek Harness Web GUI on Windows: CLI start/stop/status/restart + system tray controller",
+  "license": "MIT",
+  "scripts": {
+    "start": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 start",
+    "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 stop",
+    "status": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 status",
+    "restart": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 restart",
+    "tray": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-tray.ps1",
+    "icon": "node make-tray-icon.cjs"
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh": "^0.1.0-rc.6"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
