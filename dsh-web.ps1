@@ -31,6 +31,7 @@ param(
   [ValidateSet('start', 'stop', 'status', 'restart', 'logs')]
   [string]$Action = 'status',
 
+  [ValidateRange(1, 65535)]
   [int]$Port = 8081,
 
   [ValidateSet('127.0.0.1', '0.0.0.0')]
@@ -232,7 +233,8 @@ function Start-Harness {
     if ($OpenBrowser) { Open-GuiBrowser }
     return
   }
-  Rotate-Logs
+  # 日志轮转失败(例如另一实例正占用日志文件)不致命: 警告后继续, 不抛原始异常
+  try { Rotate-Logs } catch { Write-Host "WARN  日志轮转失败(文件可能被占用), 继续启动: $($_.Exception.Message)" }
   # 环境检查: Node >= 22 (直接跑脚本的用户也能得到明确提示)
   $envOk, $envMsg = Test-NodeEnvironment
   if (-not $envOk) {
@@ -258,12 +260,19 @@ Resolve it by any of:
   foreach ($th in $TrustedHost) { $nodeArgs += @('--trusted-host', $th) }
   $nodeArgs = $nodeArgs | ForEach-Object { if ($_ -match '\s') { '"' + $_ + '"' } else { $_ } }
 
-  if ($Console) {
-    $p = Start-Process -FilePath $node -ArgumentList $nodeArgs -PassThru
+  try {
+    if ($Console) {
+      $p = Start-Process -FilePath $node -ArgumentList $nodeArgs -PassThru
+    }
+    else {
+      $p = Start-Process -FilePath $node -ArgumentList $nodeArgs -WindowStyle Hidden `
+        -RedirectStandardOutput $LogFile -RedirectStandardError $ErrFile -PassThru
+    }
   }
-  else {
-    $p = Start-Process -FilePath $node -ArgumentList $nodeArgs -WindowStyle Hidden `
-      -RedirectStandardOutput $LogFile -RedirectStandardError $ErrFile -PassThru
+  catch {
+    $msg = "启动 dsh 进程失败：$($_.Exception.Message)`n请检查: 1) 日志目录可写: $StateDir  2) node 可执行: $node"
+    Write-EnvError -Message $msg
+    throw $msg
   }
   Set-Content -Path $PidFile -Value $p.Id
 
@@ -283,7 +292,11 @@ Resolve it by any of:
     if ($OpenBrowser) { Open-GuiBrowser }
   }
   else {
-    Write-Host "started PID $($p.Id) but no listener yet; check $ErrFile"
+    Write-Host "started PID $($p.Id) but no listener on port $Port after 45s."
+    Write-Host "排查建议:"
+    Write-Host "  1) 端口被占用或 dsh 初始化慢 → 换端口重试: dshctl start -Port 9000（托盘菜单也可改端口）"
+    Write-Host "  2) dsh 启动报错 → 查看错误日志: $ErrFile"
+    Write-Host "  3) 页面能开但会话失败(模型/配置问题) → 查看日志目录: $StateDir"
   }
 }
 
@@ -329,7 +342,13 @@ function Show-Logs {
 switch ($Action) {
   'start'   { Start-Harness }
   'stop'    { Stop-Harness }
-  'status'  { Write-Status | Out-Null }
+  'status'  {
+    # 环境提示: Node 缺失/过低时 status 也给出指引, 避免只显示 STOPPED 让人困惑
+    $major = Get-NodeMajorVersion
+    if ($null -eq $major) { Write-Host '⚠ 未检测到 Node.js（DeepSeek Harness 需要 >= 22），请先安装: https://nodejs.org' }
+    elseif ($major -lt 22) { Write-Host "⚠ Node.js 版本过低 (v$major.x)，DeepSeek Harness 需要 >= 22，请升级后再启动" }
+    Write-Status | Out-Null
+  }
   'restart' { Stop-Harness; Start-Sleep -Milliseconds 800; Start-Harness }
   'logs'    { Show-Logs }
 }

@@ -126,12 +126,20 @@ function Test-AutoStart {
 function Set-AutoStart {
   param([bool]$Enable)
   $entry = Get-AutoStartEntry
-  if ($Enable) {
-    $content = "@`n@echo off`nrem DSH Harness tray autostart (tray menu)`nstart `"`" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$($script:ScriptDir)\dsh-tray.ps1`"`n`"@"
-    [System.IO.File]::WriteAllText($entry, $content, (New-Object System.Text.UTF8Encoding($false)))
+  try {
+    if ($Enable) {
+      $content = "@`n@echo off`nrem DSH Harness tray autostart (tray menu)`nstart `"`" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$($script:ScriptDir)\dsh-tray.ps1`"`n`"@"
+      [System.IO.File]::WriteAllText($entry, $content, (New-Object System.Text.UTF8Encoding($false)))
+    }
+    else {
+      if (Test-Path $entry) { Remove-Item $entry -Force }
+    }
   }
-  else {
-    if (Test-Path $entry) { Remove-Item $entry -Force }
+  catch {
+    [System.Windows.Forms.MessageBox]::Show(
+      "开机自启设置失败：$($_.Exception.Message)`n请检查启动文件夹权限: $([Environment]::GetFolderPath('Startup'))",
+      'DSH Harness', [System.Windows.Forms.MessageBoxButtons]::OK,
+      [System.Windows.Forms.MessageBoxIcon]::Warning) | Out-Null
   }
 }
 
@@ -252,20 +260,28 @@ function Show-Tray {
   $script:timer = New-Object System.Windows.Forms.Timer
   $script:timer.Interval = 4000
   $script:timer.add_Tick({
-    $p = $script:cfgPort
-    $running = Test-Listener -Port $p
-    # 图标状态：运行蓝 / 停止灰
-    Set-TrayIcon -Running $running
-    # 一键启动：GUI 就绪后自动打开浏览器（只开一次）
-    if (-not $script:autoBootOpened -and $running) {
-      Open-Gui
-      $script:autoBootOpened = $true
+    # 轮询异常绝不能拖垮托盘: 整体 try/catch, 失败记日志后继续
+    try {
+      $p = $script:cfgPort
+      $running = Test-Listener -Port $p
+      # 图标状态：运行蓝 / 停止灰
+      Set-TrayIcon -Running $running
+      # 一键启动：GUI 就绪后自动打开浏览器（只开一次）
+      if (-not $script:autoBootOpened -and $running) {
+        Open-Gui
+        $script:autoBootOpened = $true
+      }
+      $text = Get-HarnessStatusText -Port $p
+      $newTip = "DSH · $text"
+      if ($newTip.Length -gt 63) { $newTip = $newTip.Substring(0, 63) }
+      # 只在内容变化时更新, 避免频繁重建气泡窗口导致悬停卡顿
+      if ($script:notifyIcon.Text -ne $newTip) { $script:notifyIcon.Text = $newTip }
+    } catch {
+      try {
+        $errLog = Join-Path $script:StateDir 'tray-errors.log'
+        Add-Content -Path $errLog -Value "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] tick error: $($_.Exception.Message)" -Encoding UTF8
+      } catch { }
     }
-    $text = Get-HarnessStatusText -Port $p
-    $newTip = "DSH · $text"
-    if ($newTip.Length -gt 63) { $newTip = $newTip.Substring(0, 63) }
-    # 只在内容变化时更新, 避免频繁重建气泡窗口导致悬停卡顿
-    if ($script:notifyIcon.Text -ne $newTip) { $script:notifyIcon.Text = $newTip }
   })
   $script:timer.Start()
 

@@ -17,12 +17,28 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $trayPs1 = Join-Path $RepoRoot 'dsh-tray.ps1'
-if (-not (Test-Path $trayPs1)) { throw "dsh-tray.ps1 not found in $RepoRoot" }
+if (-not (Test-Path $trayPs1)) {
+  throw "dsh-tray.ps1 not found in $RepoRoot — 请确认在仓库根目录运行本脚本，或用 -RepoRoot 指定正确目录"
+}
 
 $icon  = Join-Path $RepoRoot 'dsh-tray.ico'
 $desktop = [Environment]::GetFolderPath('Desktop')
 $startup = [Environment]::GetFolderPath('Startup')
 $ws = New-Object -ComObject WScript.Shell
+
+# 环境提示（不阻塞安装; 运行时托盘/脚本会再次检查并弹窗）
+$nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+if (-not $nodeCmd) {
+  Write-Host "⚠ 未检测到 Node.js（DeepSeek Harness 需要 >= 22）。快捷方式仍会创建，但启动时会有明确报错；建议先装: https://nodejs.org"
+}
+else {
+  try {
+    $nv = & $nodeCmd.Source --version 2>$null
+    if ($nv -match 'v?(\d+)\.' -and [int]$matches[1] -lt 22) {
+      Write-Host "⚠ Node.js 版本过低 (v$($matches[1]).x)，DeepSeek Harness 需要 >= 22，建议升级后再启动"
+    }
+  } catch { }
+}
 
 # 开机自启：把启动命令放进「启动」文件夹（用户级，无需管理员）
 # 涉及系统行为变更，必须征得用户明确同意才执行

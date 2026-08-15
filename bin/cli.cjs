@@ -47,10 +47,20 @@ function main() {
     process.exit(1);
   }
   const script = path.join(__dirname, '..', entry.script);
+  if (!require('fs').existsSync(script)) {
+    console.error(`script not found: ${script}`);
+    console.error('This looks like a broken install. Reinstall with:  npm i -g dsh-harness-control');
+    process.exit(1);
+  }
   const ps = spawn('powershell', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...args.slice(1)], {
     stdio: entry.detached ? 'ignore' : 'inherit',
     detached: !!entry.detached,
     windowsHide: true,
+  });
+  ps.on('error', (err) => {
+    console.error(`failed to start PowerShell: ${err.message}`);
+    console.error('Check that Windows PowerShell is installed and available on PATH.');
+    process.exit(1);
   });
   if (entry.detached) {
     ps.unref();

@@ -184,7 +184,7 @@ dshctl status       # 查看状态
 
 - **双击 `.ps1` 打开的是记事本** — `.ps1` 默认不执行；需要双击的场景都已配好 `.cmd` 版本（`dsh-tray.cmd` / `install.cmd` / `uninstall.cmd`）或桌面快捷方式（内部已带 `-ExecutionPolicy Bypass`）
 - **`stop` 把网页关掉了** — 这是"停止 GUI"的本意；重新 `start` 后刷新页面即恢复会话
-- **端口被占用** — 换 `-Port` 或用托盘改端口；`--port 0` 可让系统随机分配（`status` 会显示实际端口）
+- **端口被占用** — 换 `-Port`（如 `dshctl start -Port 9000`）或用托盘改端口；端口必须是 1-65535，本工具不支持 `--port 0` 随机端口（会直接报参数错误）
 - **想开机自启** — `.\install.ps1 -AutoStart`（启动文件夹方案）；取消用 `-RemoveAutoStart`
 - **托盘图标不刷新** — 右键「退出托盘」重新启动一次（Windows 图标缓存）
 - **找不到 dsh** — 脚本会自动按顺序查找：本目录 `node_modules` → Node 模块解析（npx/全局安装）→ PATH 上的 `dsh` → 全局 npm 根目录 → npm npx 缓存。全找不到时会**弹窗报错并写入 `dsh-web.err.log`**（托盘/隐藏窗口启动也看得见），按提示执行 `npm install` 或 `npm i -g @deepseek-ai/dsh` 即可；也可用 `-DshBin` 显式指定 `bin.js` 路径
