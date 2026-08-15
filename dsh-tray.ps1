@@ -4,7 +4,9 @@
   系统托盘控制器 —— DeepSeek Harness Web GUI 的可视化管理（启动/停止/重启/端口设置）。
 
 .DESCRIPTION
-  常驻右下角托盘图标，右键菜单控制 harness（实际调用同目录的 dsh-web.ps1）。
+  常驻右下角托盘图标，是后台 GUI 的**唯一桌面入口**：启动托盘时若 GUI 未运行
+  会自动拉起（调用同目录的 dsh-web.ps1），就绪后自动打开浏览器，之后全用
+  托盘菜单管理（启动/停止/重启/端口设置）。
   - 端口配置保存在 $env:DSH_HOME\dsh-web\tray-config.json
   - 悬停托盘图标可看到实时状态（2 秒刷新）
   - 双击托盘图标 = 打开浏览器界面
@@ -49,6 +51,11 @@ function Get-HarnessStatusText {
   return "已停止 (端口 $Port)"
 }
 
+function Test-Listener {
+  param([int]$Port)
+  return [bool](Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -First 1)
+}
+
 # --- 动作执行（后台调用 dsh-web.ps1，不卡托盘界面） ------------------------------
 function Invoke-DshCtlAction {
   param([string]$Action)
@@ -64,6 +71,10 @@ function Open-Gui {
 
 # --- 托盘主体 ------------------------------------------------------------------
 function Show-Tray {
+  # 单实例：托盘已在运行则直接退出（重复双击不会开两个托盘）
+  $script:mutex = New-Object System.Threading.Mutex($false, 'dsh-harness-tray')
+  if (-not $script:mutex.WaitOne(0)) { return }
+
   $script:notifyIcon = New-Object System.Windows.Forms.NotifyIcon
   $script:IconFile = Join-Path $script:ScriptDir 'dsh-tray.ico'
   if (Test-Path $script:IconFile) {
@@ -115,6 +126,7 @@ function Show-Tray {
     $script:notifyIcon.Visible = $false
     $script:notifyIcon.Icon.Dispose()
     $script:notifyIcon.Dispose()
+    try { $script:mutex.ReleaseMutex() } catch { }
     [System.Windows.Forms.Application]::Exit()
   })
 
@@ -129,11 +141,26 @@ function Show-Tray {
   $script:timer.Interval = 2000
   $script:timer.add_Tick({
     $p = Get-ConfiguredPort
+    # 一键启动：GUI 就绪后自动打开浏览器（只开一次）
+    if (-not $script:autoBootOpened -and (Test-Listener -Port $p)) {
+      Open-Gui
+      $script:autoBootOpened = $true
+    }
     $text = Get-HarnessStatusText -Port $p
     if ($text.Length -gt 63) { $text = $text.Substring(0, 63) }
     $script:notifyIcon.Text = "DSH · $text"
   })
   $script:timer.Start()
+
+  # 一键入口：GUI 未运行则自动拉起，运行中则直接打开浏览器
+  $script:autoBootOpened = $false
+  if (Test-Listener -Port (Get-ConfiguredPort)) {
+    Open-Gui
+    $script:autoBootOpened = $true
+  }
+  else {
+    Invoke-DshCtlAction 'start'
+  }
 
   [System.Windows.Forms.Application]::Run()
 }
