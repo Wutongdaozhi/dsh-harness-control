@@ -24,17 +24,32 @@
 > 1. **后台 GUI 主界面**（会话列表 + 聊天区 + 侧边栏插件）
 > 2. **系统托盘菜单**（右键 启动/停止/重启/端口设置）
 
-## 快速开始（30 秒跑起后台 GUI）
+## 快速开始（装好以后，怎么用）
+
+### 第一步：安装
 
 ```powershell
 git clone https://github.com/Wutongdaozhi/dsh-harness-control.git
 cd dsh-harness-control
 npm install                       # 安装 @deepseek-ai/dsh
-.\dsh-web.ps1 start               # 后台启动 GUI
+.\install.ps1                     # 在桌面创建快捷方式
 ```
+（已有 dsh 部署的用户可跳过 clone/npm install，直接拷贝脚本，见 [已有部署](#已有部署方式b)）
 
-启动后浏览器打开 **http://127.0.0.1:8081** 即可进入后台 GUI。
-（也可以不 clone，直接把你已有的 dsh 部署目录当成工作目录，见 [已有部署](#已有部署方式b)）
+### 第二步：桌面快捷方式（主入口）
+
+安装后会生成**两个桌面图标**：
+
+| 图标 | 双击效果 |
+|---|---|
+| **DSH Harness** | 一键启动后台 GUI（如已运行则直接打开），**并自动打开浏览器**进入 http://127.0.0.1:8081 |
+| **DSH Harness 托盘** | 启动系统托盘，日常后台管理：停止 / 重启 / 换端口 / 打开界面 |
+
+### 第三步：日常使用流程
+
+```
+开机 → 双击「DSH Harness」→ 浏览器进入后台 GUI → 用完后托盘右键「停止」
+```
 
 ## 后台 GUI 里能做什么
 
@@ -43,29 +58,31 @@ npm install                       # 安装 @deepseek-ai/dsh
 - **插件体系**：侧边栏可安装插件，如 SSH 远程运维、任务看板（定时任务）、右侧文件/预览/变更面板等
 - **设置**：模型选择、界面主题、权限策略等
 
-## 管理后台 GUI（本仓库的核心）
+## 管理后台 GUI
 
-### 命令行
+### 桌面快捷方式（最常用）
+
+- **「DSH Harness」**：启动 + 打开浏览器，一步到位（内部执行 `dsh-web.ps1 start -OpenBrowser`）
+- **「DSH Harness 托盘」**：常驻托盘做后台管理，不再需要每次开命令行
+
+### 系统托盘（后台管理）
+
+右键菜单：**启动 · 停止 · 重启 · 端口设置… · 打开界面 · 退出托盘**
+（"退出托盘"只关托盘，不停 GUI；悬停看实时状态，双击直接打开网页；端口设置存 `$env:DSH_HOME\dsh-web\tray-config.json`，改完点重启生效）
+
+### 命令行（高级）
 
 ```powershell
 .\dsh-web.ps1 status                    # 看状态（默认端口 8081）
 .\dsh-web.ps1 start                     # 后台启动（隐藏窗口，日志写文件）
 .\dsh-web.ps1 start -Port 9000          # 换端口启动
+.\dsh-web.ps1 start -OpenBrowser        # 启动后自动打开浏览器
 .\dsh-web.ps1 start -Console            # 前台窗口模式，Ctrl+C 即停
 .\dsh-web.ps1 restart -Port 9000        # 停止并换端口重启
 .\dsh-web.ps1 stop                      # 停止（会关闭 GUI，会话数据在磁盘上）
 ```
 
 或 npm 快捷方式：`npm start` / `npm stop` / `npm status` / `npm restart`（端口固定为脚本默认值 8081）。
-
-### 系统托盘（可视化）
-
-```powershell
-.\dsh-tray.ps1          # 或双击 dsh-tray.cmd / 桌面快捷方式（install.ps1 一键创建）
-```
-
-右键菜单：**启动 · 停止 · 重启 · 端口设置… · 打开界面 · 退出托盘**
-（"退出托盘"只关托盘，不停 GUI；悬停看实时状态，双击直接打开网页；端口设置存 `$env:DSH_HOME\dsh-web\tray-config.json`，改完点重启生效）
 
 ### 端口设置（三种方式）
 
@@ -79,7 +96,7 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 ### 已有部署（方式 B）
 
-如果你已经有一个 `npm install @deepseek-ai/dsh` 的目录（比如 `F:\xxx`），把本仓库的 `dsh-web.ps1`、`dsh-tray.ps1`、`dsh-tray.cmd`、`dsh-tray.ico` 拷进该目录即可；脚本会自动在 `node_modules\@deepseek-ai\dsh\lib\bin.js` 找到 dsh（也可用 `-DshBin` 显式指定）。
+如果你已经有一个 `npm install @deepseek-ai/dsh` 的目录（比如 `F:\xxx`），把本仓库的 `dsh-web.ps1`、`dsh-tray.ps1`、`dsh-tray.cmd`、`dsh-tray.ico`、`install.ps1` 拷进该目录，然后运行 `.\install.ps1` 创建桌面快捷方式即可；脚本会自动在 `node_modules\@deepseek-ai\dsh\lib\bin.js` 找到 dsh（也可用 `-DshBin` 显式指定）。
 
 ## 工作原理
 

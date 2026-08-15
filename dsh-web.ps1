@@ -38,7 +38,9 @@ param(
 
   [string]$DshBin = '',
 
-  [switch]$Console
+  [switch]$Console,
+
+  [switch]$OpenBrowser
 )
 
 $ErrorActionPreference = 'Stop'
@@ -121,9 +123,14 @@ function Write-Status {
   }
 }
 
+function Open-GuiBrowser {
+  Start-Process "http://$BindHost`:$Port"
+}
+
 function Start-Harness {
   if (Get-ListenerPid -CheckPort $Port) {
     Write-Host "already running on port $Port (see: $PidFile)"
+    if ($OpenBrowser) { Open-GuiBrowser }
     return
   }
   if (-not (Test-Path $Bin)) {
@@ -164,6 +171,7 @@ Resolve it by any of:
   Start-Sleep -Milliseconds 800
   if (Get-ListenerPid -CheckPort $Port) {
     Write-Host "STARTED  http://$BindHost`:$Port   (PID $($p.Id))"
+    if ($OpenBrowser) { Open-GuiBrowser }
   }
   else {
     Write-Host "started PID $($p.Id) but no listener yet; check $ErrFile"
