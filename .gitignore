@@ -3,11 +3,12 @@ node_modules/
 
 # runtime state (PID / logs)
 *.pid
-dsh-web.log
-dsh-web.err.log
+dsh-web.log*
+dsh-web.err.log*
 logs/
 
 # scratch
 _icon-preview.png
 dump-config.txt
 *.tmp
+
