@@ -30,8 +30,8 @@
 git clone https://github.com/Wutongdaozhi/dsh-harness-control.git
 cd dsh-harness-control
 npm install                       # 安装 @deepseek-ai/dsh
-.\install.ps1                     # 在桌面创建快捷方式
 ```
+然后**双击 `install.cmd`** 即可在桌面创建快捷方式（无需命令行；`install.ps1` 等价）。
 （已有 dsh 部署的用户可跳过 clone/npm install，直接拷贝脚本，见 [已有部署](#已有部署方式b)）
 
 ### 第二步：桌面快捷方式（唯一入口）
@@ -125,6 +125,7 @@ npm install                       # 安装 @deepseek-ai/dsh
 ```powershell
 .\uninstall.ps1        # 移除桌面快捷方式、开机自启项；删除状态目录前会询问确认
 ```
+或直接**双击 `uninstall.cmd`**（效果相同）。
 
 ## 工作原理
 
@@ -134,7 +135,7 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 ## 常见问题
 
-- **双击 `.ps1` 打开的是记事本** — 用 `dsh-tray.cmd` 或桌面快捷方式（内部已带 `-ExecutionPolicy Bypass`）
+- **双击 `.ps1` 打开的是记事本** — `.ps1` 默认不执行；需要双击的场景都已配好 `.cmd` 版本（`dsh-tray.cmd` / `install.cmd` / `uninstall.cmd`）或桌面快捷方式（内部已带 `-ExecutionPolicy Bypass`）
 - **`stop` 把网页关掉了** — 这是"停止 GUI"的本意；重新 `start` 后刷新页面即恢复会话
 - **端口被占用** — 换 `-Port` 或用托盘改端口；`--port 0` 可让系统随机分配（`status` 会显示实际端口）
 - **想开机自启** — `.\install.ps1 -AutoStart`（启动文件夹方案）；取消用 `-RemoveAutoStart`
@@ -147,7 +148,9 @@ npm install                       # 安装 @deepseek-ai/dsh
 dsh-harness-control/
 ├── dsh-web.ps1          # CLI 控制器（start/stop/status/restart/logs）
 ├── dsh-tray.ps1         # 系统托盘控制器（含一键启动+自动开浏览器）
-├── dsh-tray.cmd         # 双击启动器
+├── dsh-tray.cmd         # 双击启动器（启动托盘）
+├── install.cmd          # 双击安装（创建桌面快捷方式）
+├── uninstall.cmd        # 双击卸载（快捷方式/自启项/状态目录）
 ├── dsh-tray.ico         # 运行态蓝色鲸鱼图标（可删，用 make-tray-icon.cjs 重新生成）
 ├── dsh-tray-off.ico     # 停止态灰色鲸鱼图标
 ├── make-tray-icon.cjs   # 图标生成器（node make-tray-icon.cjs [输出] [颜色]）

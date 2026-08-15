@@ -26,8 +26,9 @@ However, `dsh web` is a **foreground process**: there is no daemon mode and no o
 git clone https://github.com/Wutongdaozhi/dsh-harness-control.git
 cd dsh-harness-control
 npm install                       # installs @deepseek-ai/dsh
-.\install.ps1                     # creates a desktop shortcut
 ```
+
+Then **double-click `install.cmd`** to create the desktop shortcut (no terminal needed; equivalent to `install.ps1`).
 
 Then double-click the **DSH Harness** desktop icon — one click does everything:
 
@@ -90,6 +91,7 @@ If you already have a directory with `npm install @deepseek-ai/dsh`, just copy `
 ```powershell
 .\uninstall.ps1        # removes the desktop shortcut and autostart entry; asks before deleting the state directory
 ```
+Or just **double-click `uninstall.cmd`** (same effect).
 
 ## How it works
 
@@ -112,7 +114,9 @@ If you already have a directory with `npm install @deepseek-ai/dsh`, just copy `
 dsh-harness-control/
 ├── dsh-web.ps1          # CLI controller (start/stop/status/restart/logs)
 ├── dsh-tray.ps1         # system-tray controller (one-click start + browser)
-├── dsh-tray.cmd         # double-click launcher
+├── dsh-tray.cmd         # double-click launcher (starts the tray)
+├── install.cmd          # double-click installer (creates the desktop shortcut)
+├── uninstall.cmd        # double-click uninstaller (shortcut / autostart / state dir)
 ├── dsh-tray.ico         # blue whale icon (running); regenerate with make-tray-icon.cjs
 ├── dsh-tray-off.ico     # gray whale icon (stopped)
 ├── make-tray-icon.cjs   # icon generator (node make-tray-icon.cjs [out] [color])
