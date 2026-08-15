@@ -16,7 +16,7 @@ const COMMANDS = {
 };
 
 function printHelp() {
-  console.log(`dsh-harness-control — manage the DeepSeek Harness web GUI (Windows)
+  console.log(`dsh-harness-control — tray & CLI controller for the DeepSeek Harness background GUI (Windows)
 
 Usage: dsh-harness-control <command> [options...]
 

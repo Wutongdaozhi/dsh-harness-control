@@ -1,22 +1,25 @@
 # dsh-harness-control
 
-> DeepSeek Harness **后台 GUI** 的一键启动与管理工具（Windows）
+> DeepSeek Harness **后台进程**的托盘 + 命令行管理器（Windows）
 >
 > 启动 · 停止 · 重启 · 端口设置 · 系统托盘可视化控制
 >
-> *One-click launch & management for the DeepSeek Harness web GUI on Windows.*
+> *Tray & CLI controller for the DeepSeek Harness background process on Windows.*
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) · [English](README.en.md)
 
 ## 这是什么
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 是 DeepSeek 开源的 AI 代理工作台。它以**浏览器后台界面（Web GUI）**的形式跑在你本机：在网页里和 DeepSeek 模型对话，让它操作文件、执行命令、调用工具、调度子代理，完成一个完整的任务闭环。
+**本工具不做 GUI。** 浏览器里的那个界面（Web GUI）是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 官方产品（npm 包 `@deepseek-ai/dsh`，`dsh web` 即启动），所有能力（模型对话、工具、插件等）都来自官方，与本工具无关。
+
+DeepSeek Harness 的 Web GUI 是个**前台进程**：没有守护模式、官方也没有停止命令——关掉终端就没了，开一个又一个黑窗口。本仓库是它的**进程管家**，用系统托盘 + 命令行把它变成"像普通软件一样"管理：
 
 ```
-你 ──浏览器──> http://127.0.0.1:8081（后台 GUI）──> DeepSeek 模型 + 工具 + 插件
+dshctl start（或托盘「启动」）──> DeepSeek Harness 后台进程
+                                        └─> 浏览器打开 http://127.0.0.1:8081（官方 GUI）
 ```
 
-但 `dsh web` 本身是个**前台进程**：没有守护模式，官方也没有停止命令——关终端就没了，开一个又一个黑窗口。本仓库把这套 GUI 变成"像普通软件一样"管理的东西：**说启动就启动、说关就关、说换端口就换端口**。
+**说启动就启动、说关就关、说换端口就换端口**；本工具只负责把后台进程管起来，不提供也不修改 GUI 本身。
 
 ## 环境要求
 
@@ -101,14 +104,7 @@ dshctl status       # 查看状态
      → 用完后托盘右键「停止」
 ```
 
-## 后台 GUI 里能做什么
-
-- **代理对话**：与 DeepSeek 模型对话，代理自动规划并调用工具（文件读写、命令执行、网页搜索、子代理、工作流……）
-- **会话持久化**：会话数据存本机 `$env:DSH_HOME\sessions`，重启 GUI 后刷新页面，历史会话与进行中的任务都能恢复
-- **插件体系**：侧边栏可安装插件，如 SSH 远程运维、任务看板（定时任务）、右侧文件/预览/变更面板等
-- **设置**：模型选择、界面主题、权限策略等
-
-## 管理后台 GUI
+## 管理后台进程
 
 ### 桌面快捷方式（唯一入口）
 

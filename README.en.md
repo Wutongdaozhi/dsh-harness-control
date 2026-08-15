@@ -1,6 +1,6 @@
 # dsh-harness-control
 
-> One-click launch & management for the **DeepSeek Harness web GUI** on Windows.
+> Tray & CLI controller for the **DeepSeek Harness background process** on Windows.
 >
 > Start · Stop · Restart · Port control · System-tray controller
 
@@ -8,13 +8,16 @@
 
 ## What is this
 
-[DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) is DeepSeek's open-source AI agent workspace. It runs as a **browser-based GUI** on your machine: chat with DeepSeek models in a web page, and let the agent operate files, run commands, call tools, and orchestrate sub-agents.
+**This tool does not build the GUI.** The browser interface (web GUI) is the official [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) product (npm package `@deepseek-ai/dsh`, started with `dsh web`); all of its capabilities (model chat, tools, plugins…) come from the official project, not from this tool.
+
+DeepSeek Harness's web GUI is a **foreground process**: no daemon mode, no official stop command — close the terminal and it is gone. This repo is its **process manager**: a system tray + CLI that manages it like a normal app:
 
 ```
-You ──browser──> http://127.0.0.1:8081 (web GUI) ──> DeepSeek models + tools + plugins
+dshctl start (or tray "Start") ──> DeepSeek Harness background process
+                                        └─> browser opens http://127.0.0.1:8081 (official GUI)
 ```
 
-However, `dsh web` is a **foreground process**: there is no daemon mode and no official stop command — close the terminal and it is gone. This repo turns that GUI into something you manage like a normal app: **start it, stop it, change its port**.
+**Start it, stop it, change its port** — this tool only manages the background process; it neither provides nor modifies the GUI itself.
 
 ## Requirements
 

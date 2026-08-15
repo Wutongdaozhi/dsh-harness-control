@@ -186,6 +186,17 @@ function Get-ListenerPid {
   return $null
 }
 
+# 轻量"是否在监听"检测: 用 .NET GetActiveTcpListeners (~3ms), 不会像
+# Get-NetTCPConnection 那样偶发阻塞数分钟。用于启动等待循环等高频调用处。
+function Test-ListenerFast {
+  param([int]$CheckPort)
+  try {
+    $listeners = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+    foreach ($ep in $listeners) { if ($ep.Port -eq $CheckPort) { return $true } }
+  } catch { }
+  return $false
+}
+
 function Test-ProcessAlive {
   param([int]$Id)
   return [bool](Get-Process -Id $Id -ErrorAction SilentlyContinue)
@@ -276,10 +287,11 @@ Resolve it by any of:
   }
   Set-Content -Path $PidFile -Value $p.Id
 
-  $deadline = (Get-Date).AddSeconds(45)
+  # 等待就绪: 用轻量检测(不阻塞), 超时给足 120s(全新安装首次运行要初始化 profile)
+  $deadline = (Get-Date).AddSeconds(120)
   while ((Get-Date) -lt $deadline) {
     Start-Sleep -Milliseconds 500
-    if (Get-ListenerPid -CheckPort $Port) { break }
+    if (Test-ListenerFast -CheckPort $Port) { break }
     if ($p.HasExited) {
       Write-Host "process exited early (code $($p.ExitCode)); tail of $ErrFile :"
       if (Test-Path $ErrFile) { Get-Content $ErrFile -Tail 10 }
@@ -287,15 +299,15 @@ Resolve it by any of:
     }
   }
   Start-Sleep -Milliseconds 800
-  if (Get-ListenerPid -CheckPort $Port) {
+  if (Test-ListenerFast -CheckPort $Port) {
     Write-Host "STARTED  http://$BindHost`:$Port   (PID $($p.Id))"
     if ($OpenBrowser) { Open-GuiBrowser }
   }
   else {
-    Write-Host "started PID $($p.Id) but no listener on port $Port after 45s."
+    Write-Host "started PID $($p.Id) but no listener on port $Port after 120s."
     Write-Host "排查建议:"
-    Write-Host "  1) 端口被占用或 dsh 初始化慢 → 换端口重试: dshctl start -Port 9000（托盘菜单也可改端口）"
-    Write-Host "  2) dsh 启动报错 → 查看错误日志: $ErrFile"
+    Write-Host "  1) 全新安装的首次运行需初始化 profile, 可能要 1-2 分钟(视网络), 稍后再用 status 查看即可"
+    Write-Host "  2) 端口被占用或 dsh 启动报错 → 换端口重试: dshctl start -Port 9000, 并查看错误日志: $ErrFile"
     Write-Host "  3) 页面能开但会话失败(模型/配置问题) → 查看日志目录: $StateDir"
   }
 }
