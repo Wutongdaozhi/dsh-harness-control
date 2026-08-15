@@ -75,16 +75,29 @@ function Save-ConfiguredPort {
 }
 
 # --- 状态查询（进程内快速实现，不另起进程） ------------------------------------
+# 注意: 悬停提示是定时轮询的, 必须用轻量 .NET API (GetActiveTcpListeners, ~2ms)。
+# 之前用 Get-NetTCPConnection (~500ms/次) 会阻塞 UI 线程, 鼠标悬停菜单时正好撞上就卡顿。
+function Test-Listener {
+  param([int]$Port)
+  try {
+    $listeners = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners()
+    foreach ($ep in $listeners) { if ($ep.Port -eq $Port) { return $true } }
+  } catch { }
+  return $false
+}
+
 function Get-HarnessStatusText {
+  param([int]$Port)
+  if (Test-Listener -Port $Port) { return "运行中 · http://127.0.0.1:$Port" }
+  return "已停止 (端口 $Port)"
+}
+
+# 点菜单时才用的详细版(带 PID); 一次性调用, 用慢一点的 Get-NetTCPConnection 无妨
+function Get-HarnessStatusDetail {
   param([int]$Port)
   $conn = Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -First 1
   if ($conn) { return "运行中 · http://127.0.0.1:$Port (PID $($conn.OwningProcess))" }
   return "已停止 (端口 $Port)"
-}
-
-function Test-Listener {
-  param([int]$Port)
-  return [bool](Get-NetTCPConnection -State Listen -LocalPort $Port -ErrorAction SilentlyContinue | Select-Object -First 1)
 }
 
 # --- 动作执行（后台调用 dsh-web.ps1，不卡托盘界面） ------------------------------
@@ -171,7 +184,7 @@ function Show-Tray {
 
   $miStatus.Add_Click({
     $p = Get-ConfiguredPort
-    [System.Windows.Forms.MessageBox]::Show((Get-HarnessStatusText -Port $p), 'DSH Harness 状态',
+    [System.Windows.Forms.MessageBox]::Show((Get-HarnessStatusDetail -Port $p), 'DSH Harness 状态',
       [System.Windows.Forms.MessageBoxButtons]::OK,
       [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
   })
@@ -189,6 +202,7 @@ function Show-Tray {
       return
     }
     Save-ConfiguredPort -Port $num
+    $script:cfgPort = $num
     [System.Windows.Forms.MessageBox]::Show("端口已设为 $num`n点击菜单「重启」即可生效。", 'DSH Harness',
       [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
   })
@@ -233,27 +247,31 @@ function Show-Tray {
   # 双击托盘 = 打开界面
   $script:notifyIcon.add_DoubleClick({ Open-Gui })
 
-  # 定时刷新悬停提示
+  # 定时刷新悬停提示: 4 秒一次, 轻量检测 + 气泡只在内容变化时更新(避免重建托盘提示窗口)
+  $script:cfgPort = Get-ConfiguredPort
   $script:timer = New-Object System.Windows.Forms.Timer
-  $script:timer.Interval = 2000
+  $script:timer.Interval = 4000
   $script:timer.add_Tick({
-    $p = Get-ConfiguredPort
+    $p = $script:cfgPort
+    $running = Test-Listener -Port $p
     # 图标状态：运行蓝 / 停止灰
-    Set-TrayIcon -Running (Test-Listener -Port $p)
+    Set-TrayIcon -Running $running
     # 一键启动：GUI 就绪后自动打开浏览器（只开一次）
-    if (-not $script:autoBootOpened -and (Test-Listener -Port $p)) {
+    if (-not $script:autoBootOpened -and $running) {
       Open-Gui
       $script:autoBootOpened = $true
     }
     $text = Get-HarnessStatusText -Port $p
-    if ($text.Length -gt 63) { $text = $text.Substring(0, 63) }
-    $script:notifyIcon.Text = "DSH · $text"
+    $newTip = "DSH · $text"
+    if ($newTip.Length -gt 63) { $newTip = $newTip.Substring(0, 63) }
+    # 只在内容变化时更新, 避免频繁重建气泡窗口导致悬停卡顿
+    if ($script:notifyIcon.Text -ne $newTip) { $script:notifyIcon.Text = $newTip }
   })
   $script:timer.Start()
 
   # 一键入口：GUI 未运行则自动拉起，运行中则直接打开浏览器
   $script:autoBootOpened = $false
-  if (Test-Listener -Port (Get-ConfiguredPort)) {
+  if (Test-Listener -Port $script:cfgPort) {
     Set-TrayIcon -Running $true
     Open-Gui
     $script:autoBootOpened = $true
