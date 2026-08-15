@@ -1,6 +1,6 @@
 {
   "name": "dsh-harness-control",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "Manage the DeepSeek Harness Web GUI on Windows: CLI start/stop/status/restart + system tray controller",
   "license": "MIT",
   "bin": {
@@ -33,6 +33,6 @@
     "@deepseek-ai/dsh": "^0.1.0-rc.6"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   }
 }

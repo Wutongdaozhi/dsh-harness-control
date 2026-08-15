@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Convenience controller for the DeepSeek Harness Web GUI
   (start / stop / status / restart, with port control).
@@ -64,20 +64,61 @@ $PidFile = Join-Path $StateDir 'dsh-web.pid'
 $LogFile = Join-Path $StateDir 'dsh-web.log'
 $ErrFile = Join-Path $StateDir 'dsh-web.err.log'
 
-# --- locate the dsh CLI (portable: -DshBin > repo node_modules > PATH) --------
-if ($DshBin -and (Test-Path $DshBin)) {
-  $Bin = $DshBin
-}
-else {
-  $Bin = Join-Path $DeployRoot 'node_modules\@deepseek-ai\dsh\lib\bin.js'
-  if (-not (Test-Path $Bin)) {
-    $dshCmd = Get-Command dsh -ErrorAction SilentlyContinue
-    if ($dshCmd) {
-      $candidate = [System.IO.Path]::GetFullPath((Join-Path (Split-Path $dshCmd.Source) '..\@deepseek-ai\dsh\lib\bin.js'))
-      if (Test-Path $candidate) { $Bin = $candidate }
+# --- locate the dsh CLI (portable: -DshBin > local node_modules > Node
+#     resolution > PATH shims > global npm root) --------------------------------
+# 修复: 从托盘/桌面启动时 PATH 里往往没有 dsh, 必须能靠项目本地依赖或 Node
+# 模块解析找到 @deepseek-ai/dsh, 失败时把原因写进 err 日志而不是静默退出。
+function Find-DshBin {
+  param([string]$Explicit)
+  if ($Explicit -and (Test-Path $Explicit)) { return $Explicit }
+
+  # 1) 本目录 npm install 出来的依赖
+  $local = Join-Path $DeployRoot 'node_modules\@deepseek-ai\dsh\lib\bin.js'
+  if (Test-Path $local) { return $local }
+
+  # 2) 交给 Node 的模块解析 (覆盖 npx 缓存安装 / 全局平铺安装两种布局)
+  try {
+    $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+    if ($nodeCmd) {
+      $resolved = & $nodeCmd.Source -e "console.log(require.resolve('@deepseek-ai/dsh/lib/bin.js', { paths: [process.argv[1]] }))" $DeployRoot 2>$null
+      $cand = ($resolved | Select-Object -Last 1)
+      if ($cand -and (Test-Path $cand.Trim())) { return $cand.Trim() }
+    }
+  } catch { }
+
+  # 3) PATH 上有 dsh 可执行文件 (全局安装 / PATH 里的 npx 缓存)
+  $dshCmd = Get-Command dsh -ErrorAction SilentlyContinue
+  if ($dshCmd) {
+    $shimDir = Split-Path -Parent $dshCmd.Source
+    foreach ($rel in @('..\@deepseek-ai\dsh\lib\bin.js', 'node_modules\@deepseek-ai\dsh\lib\bin.js', '..\node_modules\@deepseek-ai\dsh\lib\bin.js')) {
+      $candidate = [System.IO.Path]::GetFullPath((Join-Path $shimDir $rel))
+      if (Test-Path $candidate) { return $candidate }
     }
   }
+
+  # 4) 全局 npm 根目录
+  try {
+    $root = & npm root -g 2>$null
+    $g = Join-Path (($root | Select-Object -Last 1).Trim()) '@deepseek-ai\dsh\lib\bin.js'
+    if ($g -and (Test-Path $g)) { return $g }
+  } catch { }
+
+  # 5) npm npx 缓存里现成的 dsh 安装 (npx 跑过一次 @deepseek-ai/dsh 就有)
+  try {
+    $cache = & npm config get cache 2>$null
+    if ($cache) {
+      $npxRoot = Join-Path ($cache.Trim()) '_npx'
+      foreach ($dir in (Get-ChildItem $npxRoot -Directory -ErrorAction SilentlyContinue)) {
+        $p = Join-Path $dir.FullName 'node_modules\@deepseek-ai\dsh\lib\bin.js'
+        if (Test-Path $p) { return $p }
+      }
+    }
+  } catch { }
+
+  return $null
 }
+
+$Bin = Find-DshBin -Explicit $DshBin
 
 # --- helpers -----------------------------------------------------------------
 function Get-NodePath {
@@ -150,15 +191,25 @@ function Start-Harness {
     return
   }
   Rotate-Logs
-  if (-not (Test-Path $Bin)) {
-    throw @"
+  if (-not $Bin -or -not (Test-Path $Bin)) {
+    $msg = @"
 dsh CLI not found: $Bin
 Resolve it by any of:
-  1) run  npm install @deepseek-ai/dsh  in this directory, or
-  2) copy this script into your dsh deployment directory
+  1) run  npm install  in this directory (installs @deepseek-ai/dsh), or
+  2) install globally:  npm i -g @deepseek-ai/dsh, or
+  3) copy this script into your dsh deployment directory
      (the one containing node_modules\@deepseek-ai\dsh), or
-  3) pass -DshBin <path-to-dsh>\lib\bin.js explicitly.
+  4) pass -DshBin <path-to-dsh>\lib\bin.js explicitly.
 "@
+    # 托盘/隐藏窗口启动时看不到 throw: 写进错误日志, 并弹窗让用户立刻知道原因
+    if ($ErrFile) { try { $msg | Set-Content -Path $ErrFile -Encoding UTF8 } catch { } }
+    try {
+      Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+      [System.Windows.Forms.MessageBox]::Show($msg, 'DSH Harness - 缺少 dsh 依赖',
+        [System.Windows.Forms.MessageBoxButtons]::OK,
+        [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    } catch { }
+    throw $msg
   }
 
   $node = Get-NodePath

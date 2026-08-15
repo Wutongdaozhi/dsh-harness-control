@@ -18,6 +18,12 @@
 
 但 `dsh web` 本身是个**前台进程**：没有守护模式，官方也没有停止命令——关终端就没了，开一个又一个黑窗口。本仓库把这套 GUI 变成"像普通软件一样"管理的东西：**说启动就启动、说关就关、说换端口就换端口**。
 
+## 环境要求
+
+- **Windows 10 / 11**（脚本与托盘均为 Windows 专用）
+- **Node.js ≥ 22**（DeepSeek Harness 运行所必需；用 `npm install` 安装本包时会自动校验，低于 22 会提示）
+- `@deepseek-ai/dsh` 无需手动安装——npm / npx 安装本包时会自动带上，脚本也会自动查找已有的 dsh 部署或 npx 缓存
+
 ## 界面预览
 
 ![系统托盘右键菜单（启动/停止/重启/端口设置）](docs/tray-menu.png)
@@ -158,7 +164,7 @@ dshctl status       # 查看状态
 - **端口被占用** — 换 `-Port` 或用托盘改端口；`--port 0` 可让系统随机分配（`status` 会显示实际端口）
 - **想开机自启** — `.\install.ps1 -AutoStart`（启动文件夹方案）；取消用 `-RemoveAutoStart`
 - **托盘图标不刷新** — 右键「退出托盘」重新启动一次（Windows 图标缓存）
-- **找不到 dsh** — 确认已在脚本同目录 `npm install @deepseek-ai/dsh`，或用 `-DshBin` 指定 `bin.js` 路径
+- **找不到 dsh** — 脚本会自动按顺序查找：本目录 `node_modules` → Node 模块解析（npx/全局安装）→ PATH 上的 `dsh` → 全局 npm 根目录 → npm npx 缓存。全找不到时会**弹窗报错并写入 `dsh-web.err.log`**（托盘/隐藏窗口启动也看得见），按提示执行 `npm install` 或 `npm i -g @deepseek-ai/dsh` 即可；也可用 `-DshBin` 显式指定 `bin.js` 路径
 
 ## 目录结构
 

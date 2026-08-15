@@ -16,6 +16,12 @@ You ──browser──> http://127.0.0.1:8081 (web GUI) ──> DeepSeek models
 
 However, `dsh web` is a **foreground process**: there is no daemon mode and no official stop command — close the terminal and it is gone. This repo turns that GUI into something you manage like a normal app: **start it, stop it, change its port**.
 
+## Requirements
+
+- **Windows 10 / 11** (scripts and tray are Windows-only)
+- **Node.js ≥ 22** (required by DeepSeek Harness; `npm install` of this package enforces it)
+- No manual `@deepseek-ai/dsh` install needed — it is pulled in automatically by npm/npx, and the scripts also auto-detect an existing dsh deployment or npx cache
+
 ## Preview
 
 ![Tray context menu](docs/tray-menu.png)
