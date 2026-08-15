@@ -22,6 +22,29 @@ However, `dsh web` is a **foreground process**: there is no daemon mode and no o
 - **Node.js ≥ 22** (required by DeepSeek Harness; `npm install` of this package enforces it)
 - No manual `@deepseek-ai/dsh` install needed — it is pulled in automatically by npm/npx, and the scripts also auto-detect an existing dsh deployment or npx cache
 
+## Install DeepSeek Harness (prerequisite)
+
+This tool manages the GUI of [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) (npm package `@deepseek-ai/dsh`). **Pick one of the two ways below** (or skip both — the npm/npx install in *Quick start → Option C* pulls in `@deepseek-ai/dsh` automatically):
+
+**Option 1: official one-liner (try it first)**
+```powershell
+npx @deepseek-ai/dsh web
+```
+Open `http://127.0.0.1:3080` in your browser — that's the official Harness web GUI (default port 3080; this tool defaults to 8081, changeable).
+
+**Option 2: global install (long-term, used by this tool automatically)**
+```powershell
+npm install -g @deepseek-ai/dsh
+```
+
+**From source** (advanced, official repo flow):
+```powershell
+git clone https://github.com/deepseek-ai/deepseek-harness.git
+cd deepseek-harness
+pnpm install && pnpm run build
+pnpm dsh web
+```
+
 ## Preview
 
 ![Tray context menu](docs/tray-menu.png)

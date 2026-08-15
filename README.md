@@ -24,6 +24,29 @@
 - **Node.js ≥ 22**（DeepSeek Harness 运行所必需；用 `npm install` 安装本包时会自动校验，低于 22 会提示）
 - `@deepseek-ai/dsh` 无需手动安装——npm / npx 安装本包时会自动带上，脚本也会自动查找已有的 dsh 部署或 npx 缓存
 
+## 安装 DeepSeek Harness（前提）
+
+本工具管理的 GUI 来自 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness)（npm 包 `@deepseek-ai/dsh`），**以下两种方式二选一**（都不想做？直接用下面「快速开始」的**方式 C**，npm/npx 会自动带上，无需手动装）：
+
+**方式 1：官方一键体验（先跑起来看看）**
+```powershell
+npx @deepseek-ai/dsh web
+```
+启动后浏览器打开 `http://127.0.0.1:3080` 即是 Harness 官方 Web GUI（默认端口 3080；本工具默认用 8081，可改）。
+
+**方式 2：全局安装（长期使用，供本工具自动调用）**
+```powershell
+npm install -g @deepseek-ai/dsh
+```
+
+**从源码构建**（进阶，官方仓库方式）：
+```powershell
+git clone https://github.com/deepseek-ai/deepseek-harness.git
+cd deepseek-harness
+pnpm install && pnpm run build
+pnpm dsh web
+```
+
 ## 界面预览
 
 ![系统托盘右键菜单（启动/停止/重启/端口设置）](docs/tray-menu.png)

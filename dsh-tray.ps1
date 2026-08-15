@@ -26,6 +26,37 @@ $script:DshCtl     = Join-Path $script:ScriptDir 'dsh-web.ps1'
 $script:StateDir   = if ($env:DSH_HOME -and (Test-Path $env:DSH_HOME)) { Join-Path $env:DSH_HOME 'dsh-web' } else { $script:ScriptDir }
 $script:ConfigFile = Join-Path $script:StateDir 'tray-config.json'
 
+# --- 环境检查: 启动托盘前先确认 Node >= 22, 否则弹窗退出 ---------------------------
+# 直接双击运行本脚本(没走 npm/npx 安装)的用户, 靠这里立刻知道缺什么。
+function Test-TrayEnvironment {
+  $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+  if (-not $nodeCmd) {
+    [System.Windows.Forms.MessageBox]::Show(@'
+未检测到 Node.js！
+DeepSeek Harness 需要 Node.js >= 22。
+安装: https://nodejs.org 下载 LTS (推荐 nvm-windows 安装 22.x)，装完再启动托盘。
+'@, 'DSH Harness - 环境检查未通过',
+      [System.Windows.Forms.MessageBoxButtons]::OK,
+      [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+    return $false
+  }
+  try {
+    $v = & $nodeCmd.Source --version 2>$null
+    if ($v -match 'v?(\d+)\.') {
+      $major = [int]$matches[1]
+      if ($major -lt 22) {
+        [System.Windows.Forms.MessageBox]::Show(
+          "Node.js 版本过低：当前 v$major.x，DeepSeek Harness 需要 >= 22。`n升级: https://nodejs.org (推荐 nvm-windows: nvm install 22 && nvm use 22)",
+          'DSH Harness - 环境检查未通过',
+          [System.Windows.Forms.MessageBoxButtons]::OK,
+          [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+        return $false
+      }
+    }
+  } catch { }
+  return $true
+}
+
 # --- 配置读写 ----------------------------------------------------------------
 function Get-ConfiguredPort {
   if (Test-Path $script:ConfigFile) {
@@ -105,6 +136,9 @@ function Show-Tray {
   # 单实例：托盘已在运行则直接退出（重复双击不会开两个托盘）
   $script:mutex = New-Object System.Threading.Mutex($false, 'dsh-harness-tray')
   if (-not $script:mutex.WaitOne(0)) { return }
+
+  # 环境检查: Node >= 22, 不满足直接弹窗退出(不创建托盘)
+  if (-not (Test-TrayEnvironment)) { return }
 
   $script:notifyIcon = New-Object System.Windows.Forms.NotifyIcon
   $script:IconOnFile = Join-Path $script:ScriptDir 'dsh-tray.ico'

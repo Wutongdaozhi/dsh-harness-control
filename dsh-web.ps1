@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
   Convenience controller for the DeepSeek Harness Web GUI
   (start / stop / status / restart, with port control).
@@ -127,6 +127,48 @@ function Get-NodePath {
   throw 'node was not found on PATH'
 }
 
+function Get-NodeMajorVersion {
+  $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+  if (-not $nodeCmd) { return $null }
+  try {
+    $v = & $nodeCmd.Source --version 2>$null
+    if ($v -match 'v?(\d+)\.') { return [int]$matches[1] }
+  } catch { }
+  return $null
+}
+
+# 环境检查: Node.js 必须存在且 >= 22 (DeepSeek Harness 硬性要求)。
+# 直接跑脚本(没走 npm/npx 安装)的用户, 靠这里拿到明确提示而不是莫名失败。
+function Test-NodeEnvironment {
+  $major = Get-NodeMajorVersion
+  if ($null -eq $major) {
+    return $false, @'
+未检测到 Node.js！
+DeepSeek Harness 需要 Node.js >= 22。
+安装: 到 https://nodejs.org 下载 LTS (推荐 nvm-windows 安装 22.x)，装完重开终端再试。
+'@
+  }
+  if ($major -lt 22) {
+    return $false, @"
+Node.js 版本过低：当前 v$major.x，DeepSeek Harness 需要 >= 22。
+升级: 到 https://nodejs.org 下载新版 (推荐 nvm-windows: nvm install 22 && nvm use 22)。
+"@
+  }
+  return $true, ''
+}
+
+function Write-EnvError {
+  param([string]$Message)
+  if ($ErrFile) { try { $Message | Set-Content -Path $ErrFile -Encoding UTF8 } catch { } }
+  Write-Host $Message
+  try {
+    Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
+    [System.Windows.Forms.MessageBox]::Show($Message, 'DSH Harness - 环境检查未通过',
+      [System.Windows.Forms.MessageBoxButtons]::OK,
+      [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
+  } catch { }
+}
+
 function Get-PidFromFile {
   if (Test-Path $PidFile) {
     $raw = (Get-Content $PidFile -Raw).Trim()
@@ -191,6 +233,12 @@ function Start-Harness {
     return
   }
   Rotate-Logs
+  # 环境检查: Node >= 22 (直接跑脚本的用户也能得到明确提示)
+  $envOk, $envMsg = Test-NodeEnvironment
+  if (-not $envOk) {
+    Write-EnvError -Message $envMsg
+    throw $envMsg
+  }
   if (-not $Bin -or -not (Test-Path $Bin)) {
     $msg = @"
 dsh CLI not found: $Bin
@@ -201,14 +249,7 @@ Resolve it by any of:
      (the one containing node_modules\@deepseek-ai\dsh), or
   4) pass -DshBin <path-to-dsh>\lib\bin.js explicitly.
 "@
-    # 托盘/隐藏窗口启动时看不到 throw: 写进错误日志, 并弹窗让用户立刻知道原因
-    if ($ErrFile) { try { $msg | Set-Content -Path $ErrFile -Encoding UTF8 } catch { } }
-    try {
-      Add-Type -AssemblyName System.Windows.Forms -ErrorAction Stop
-      [System.Windows.Forms.MessageBox]::Show($msg, 'DSH Harness - 缺少 dsh 依赖',
-        [System.Windows.Forms.MessageBoxButtons]::OK,
-        [System.Windows.Forms.MessageBoxIcon]::Error) | Out-Null
-    } catch { }
+    Write-EnvError -Message $msg
     throw $msg
   }
 
