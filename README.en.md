@@ -22,13 +22,28 @@ However, `dsh web` is a **foreground process**: there is no daemon mode and no o
 
 ## Quick start
 
+**Install (pick one):**
+
+*Option A — clone the repo:*
 ```powershell
 git clone https://github.com/Wutongdaozhi/dsh-harness-control.git
 cd dsh-harness-control
 npm install                       # installs @deepseek-ai/dsh
 ```
-
 Then **double-click `install.cmd`** to create the desktop shortcut (no terminal needed; equivalent to `install.ps1`).
+
+*Option B — existing dsh deployment:* copy the scripts into your deployment dir (see below).
+
+*Option C — npm / npx (no clone):*
+```powershell
+npm install -g dsh-harness-control   # then use `dsh-harness-control` or the alias `dshctl`
+# or without installing:  npx -y dsh-harness-control status
+dshctl install      # create the desktop shortcut
+dshctl tray         # start the system tray
+dshctl start        # start the web GUI
+dshctl status       # show status
+```
+(A global install bundles `@deepseek-ai/dsh` for out-of-the-box use; existing deployments can point at theirs with `-DshBin`.)
 
 Then double-click the **DSH Harness** desktop icon — one click does everything:
 
@@ -112,6 +127,7 @@ Or just **double-click `uninstall.cmd`** (same effect).
 
 ```
 dsh-harness-control/
+├── bin/cli.cjs          # npm/npx CLI entry (forwards to the PowerShell scripts)
 ├── dsh-web.ps1          # CLI controller (start/stop/status/restart/logs)
 ├── dsh-tray.ps1         # system-tray controller (one-click start + browser)
 ├── dsh-tray.cmd         # double-click launcher (starts the tray)

@@ -24,15 +24,33 @@
 
 ## 快速开始（装好以后，怎么用）
 
-### 第一步：安装
+### 第一步：安装（三选一）
 
+**方式 A：clone 部署（完整源码）**
 ```powershell
 git clone https://github.com/Wutongdaozhi/dsh-harness-control.git
 cd dsh-harness-control
 npm install                       # 安装 @deepseek-ai/dsh
 ```
-然后**双击 `install.cmd`** 即可在桌面创建快捷方式（无需命令行；`install.ps1` 等价）。
-（已有 dsh 部署的用户可跳过 clone/npm install，直接拷贝脚本，见 [已有部署](#已有部署方式b)）
+然后**双击 `install.cmd`** 创建桌面快捷方式（无需命令行；`install.ps1` 等价）。
+
+**方式 B：已有 dsh 部署** — 把脚本拷进部署目录即可（见 [已有部署](#已有部署方式b)）。
+
+**方式 C：npm / npx（免 clone，推荐）**
+```powershell
+# 全局安装（之后直接用命令 dsh-harness-control 或短名 dshctl）
+npm install -g dsh-harness-control
+
+# 或不想安装，直接临时跑：
+npx -y dsh-harness-control status
+
+# 日常用法
+dshctl install      # 创建桌面快捷方式
+dshctl tray         # 启动系统托盘
+dshctl start        # 启动后台 GUI
+dshctl status       # 查看状态
+```
+（全局安装会一并带上 `@deepseek-ai/dsh`，开箱即用；已有 dsh 部署的用户可用 `-DshBin` 指向现有安装。）
 
 ### 第二步：桌面快捷方式（唯一入口）
 
@@ -146,6 +164,7 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 ```
 dsh-harness-control/
+├── bin/cli.cjs          # npm/npx 命令行入口（转发到 PowerShell 脚本）
 ├── dsh-web.ps1          # CLI 控制器（start/stop/status/restart/logs）
 ├── dsh-tray.ps1         # 系统托盘控制器（含一键启动+自动开浏览器）
 ├── dsh-tray.cmd         # 双击启动器（启动托盘）
