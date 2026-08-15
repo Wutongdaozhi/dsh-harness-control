@@ -10,8 +10,6 @@
 
 ## 这是什么
 
-**本工具不做 GUI。** 浏览器里的那个界面（Web GUI）是 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 官方产品（npm 包 `@deepseek-ai/dsh`，`dsh web` 即启动），所有能力（模型对话、工具、插件等）都来自官方，与本工具无关。
-
 DeepSeek Harness 的 Web GUI 是个**前台进程**：没有守护模式、官方也没有停止命令——关掉终端就没了，开一个又一个黑窗口。本仓库是它的**进程管家**，用系统托盘 + 命令行把它变成"像普通软件一样"管理：
 
 ```
