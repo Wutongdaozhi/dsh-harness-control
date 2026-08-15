@@ -73,9 +73,12 @@ If you already have a directory with `npm install @deepseek-ai/dsh`, just copy `
 ## Autostart (optional)
 
 ```powershell
-.\install.ps1 -AutoStart        # start the tray at logon (Startup folder, no admin)
+.\install.ps1 -AutoStart        # start the tray at logon (asks for confirmation)
+.\install.ps1 -AutoStart -Yes   # skip the confirmation prompt (scripting)
 .\install.ps1 -RemoveAutoStart  # disable autostart
 ```
+
+> Autostart changes system behavior (runs the tray and starts the GUI at every logon); the installer **asks for your explicit consent before enabling it**. Remove anytime with `-RemoveAutoStart`.
 
 ## How it works
 

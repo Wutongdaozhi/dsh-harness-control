@@ -106,9 +106,12 @@ npm install                       # 安装 @deepseek-ai/dsh
 ### 开机自启（可选）
 
 ```powershell
-.\install.ps1 -AutoStart        # 登录时自动启动托盘（启动文件夹方案，无需管理员）
+.\install.ps1 -AutoStart        # 登录时自动启动托盘（会先询问确认）
+.\install.ps1 -AutoStart -Yes   # 跳过确认直接启用（脚本化场景）
 .\install.ps1 -RemoveAutoStart  # 取消开机自启
 ```
+
+> 开机自启会改变系统行为（每次登录自动运行托盘并拉起 GUI），**启用前必须经过你确认同意**；取消随时可执行 `-RemoveAutoStart`。
 
 ## 工作原理
 
