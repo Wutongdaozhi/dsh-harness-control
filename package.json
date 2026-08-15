@@ -1,14 +1,36 @@
 {
   "name": "dsh-harness-control",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Manage the DeepSeek Harness Web GUI on Windows: CLI start/stop/status/restart + system tray controller",
   "license": "MIT",
+  "author": {
+    "name": "Wutongdaozhi"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Wutongdaozhi/dsh-harness-control.git"
+  },
+  "homepage": "https://github.com/Wutongdaozhi/dsh-harness-control#readme",
+  "bugs": {
+    "url": "https://github.com/Wutongdaozhi/dsh-harness-control/issues"
+  },
+  "keywords": [
+    "deepseek",
+    "deepseek-harness",
+    "dsh",
+    "ai-agent",
+    "windows",
+    "system-tray",
+    "gui",
+    "controller"
+  ],
   "bin": {
     "dsh-harness-control": "bin/cli.cjs",
     "dshctl": "bin/cli.cjs"
   },
   "files": [
     "bin/",
+    "docs/",
     "*.ps1",
     "*.cmd",
     "*.ico",
