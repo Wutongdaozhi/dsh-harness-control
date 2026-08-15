@@ -1,0 +1,56 @@
+name: ps-check
+
+on:
+  push:
+    paths: ['**.ps1', '**.cmd', '.github/workflows/**']
+  pull_request:
+    paths: ['**.ps1', '**.cmd']
+
+jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PSScriptAnalyzer
+        shell: pwsh
+        run: |
+          [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+          Install-PackageProvider -Name NuGet -Force -Confirm:$false | Out-Null
+          Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
+          Install-Module PSScriptAnalyzer -Force -Scope CurrentUser -Confirm:$false
+
+      - name: BOM / parse / lint
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = Get-ChildItem -Recurse -Filter *.ps1
+          if (-not $files) { throw 'no .ps1 files found' }
+
+          # 1) UTF-8 BOM —— Windows PowerShell 5.1 中文兼容的硬要求
+          foreach ($f in $files) {
+            $b = [System.IO.File]::ReadAllBytes($f.FullName)
+            if ($b.Length -lt 3 -or $b[0] -ne 0xEF -or $b[1] -ne 0xBB -or $b[2] -ne 0xBF) {
+              throw "missing UTF-8 BOM: $($f.FullName)"
+            }
+          }
+
+          # 2) 语法解析
+          foreach ($f in $files) {
+            $tokens = $null; $errors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($f.FullName, [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) {
+              throw "parse errors in $($f.Name): $($errors[0].Message)"
+            }
+          }
+
+          # 3) PSScriptAnalyzer —— 仅拦截 Error 级
+          $issues = @()
+          foreach ($f in $files) {
+            $issues += Invoke-ScriptAnalyzer -Path $f.FullName -Severity Error
+          }
+          if ($issues.Count -gt 0) {
+            $issues | Format-Table RuleName, ScriptName, Line, Message -AutoSize
+            throw "$($issues.Count) PSScriptAnalyzer error(s) found"
+          }
+          Write-Host 'all checks passed'

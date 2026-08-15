@@ -94,6 +94,7 @@ function Show-Tray {
   $sep1        = New-Object System.Windows.Forms.ToolStripSeparator
   $miPort      = New-Object System.Windows.Forms.ToolStripMenuItem('端口设置…')
   $miOpen      = New-Object System.Windows.Forms.ToolStripMenuItem('打开界面')
+  $miLogs      = New-Object System.Windows.Forms.ToolStripMenuItem('查看日志…')
   $sep2        = New-Object System.Windows.Forms.ToolStripSeparator
   $miExit      = New-Object System.Windows.Forms.ToolStripMenuItem('退出托盘')
 
@@ -121,6 +122,16 @@ function Show-Tray {
       [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
   })
   $miOpen.Add_Click({ Open-Gui })
+  $miLogs.Add_Click({
+    $log = Join-Path $script:StateDir 'dsh-web.log'
+    $err = Join-Path $script:StateDir 'dsh-web.err.log'
+    if (Test-Path $log) { Start-Process $log }
+    elseif (Test-Path $err) { Start-Process $err }
+    else {
+      [System.Windows.Forms.MessageBox]::Show('还没有日志文件，先启动一次 harness。', 'DSH Harness',
+        [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
+    }
+  })
   $miExit.Add_Click({
     $script:timer.Stop()
     $script:notifyIcon.Visible = $false
@@ -130,7 +141,7 @@ function Show-Tray {
     [System.Windows.Forms.Application]::Exit()
   })
 
-  $menu.Items.AddRange(@($miStatus, $miStart, $miStop, $miRestart, $sep1, $miPort, $miOpen, $sep2, $miExit))
+  $menu.Items.AddRange(@($miStatus, $miStart, $miStop, $miRestart, $sep1, $miPort, $miOpen, $miLogs, $sep2, $miExit))
   $script:notifyIcon.ContextMenuStrip = $menu
 
   # 双击托盘 = 打开界面

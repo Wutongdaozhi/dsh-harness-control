@@ -15,7 +15,7 @@ function findSharp() {
     () => require('sharp'),                       // 当前目录可解析（已 npm install）
     () => require(path.join(__dirname, 'node_modules', 'sharp')),
     () => require(path.join(process.env.DSH_HOME || '', 'profiles', 'node_modules', 'sharp')),
-    () => require('D:/node/node_modules/sharp'),
+    () => require(require('child_process').execSync('npm root -g').toString().trim() + '/sharp'),
   ];
   for (const c of candidates) {
     try { return c(); } catch (e) { /* try next */ }

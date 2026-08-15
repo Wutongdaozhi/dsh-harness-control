@@ -8,6 +8,7 @@
     "stop": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 stop",
     "status": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 status",
     "restart": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 restart",
+    "logs": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-web.ps1 logs",
     "tray": "powershell -NoProfile -ExecutionPolicy Bypass -File dsh-tray.ps1",
     "icon": "node make-tray-icon.cjs"
   },

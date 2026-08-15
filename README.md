@@ -6,7 +6,7 @@
 >
 > *One-click launch & management for the DeepSeek Harness web GUI on Windows.*
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE) · [English](README.en.md)
 
 ## 这是什么
 
@@ -70,7 +70,7 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 ### 系统托盘（后台管理）
 
-右键菜单：**启动 · 停止 · 重启 · 端口设置… · 打开界面 · 退出托盘**
+右键菜单：**启动 · 停止 · 重启 · 端口设置… · 打开界面 · 查看日志… · 退出托盘**
 （"退出托盘"只关托盘，不停 GUI；悬停看实时状态，双击直接打开网页；端口设置存 `$env:DSH_HOME\dsh-web\tray-config.json`，改完点重启生效）
 
 ### 命令行（高级）
@@ -83,9 +83,11 @@ npm install                       # 安装 @deepseek-ai/dsh
 .\dsh-web.ps1 start -Console            # 前台窗口模式，Ctrl+C 即停
 .\dsh-web.ps1 restart -Port 9000        # 停止并换端口重启
 .\dsh-web.ps1 stop                      # 停止（会关闭 GUI，会话数据在磁盘上）
+.\dsh-web.ps1 logs                      # 查看最近日志
+.\dsh-web.ps1 logs -Tail 200 -Follow    # 跟踪日志输出（Ctrl+C 停止）
 ```
 
-或 npm 快捷方式：`npm start` / `npm stop` / `npm status` / `npm restart`（端口固定为脚本默认值 8081）。
+或 npm 快捷方式：`npm start` / `npm stop` / `npm status` / `npm restart` / `npm run logs`（端口固定为脚本默认值 8081）。
 
 ### 端口设置（三种方式）
 
@@ -101,6 +103,13 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 如果你已经有一个 `npm install @deepseek-ai/dsh` 的目录（比如 `F:\xxx`），把本仓库的 `dsh-web.ps1`、`dsh-tray.ps1`、`dsh-tray.cmd`、`dsh-tray.ico`、`install.ps1` 拷进该目录，然后运行 `.\install.ps1` 创建桌面快捷方式即可；脚本会自动在 `node_modules\@deepseek-ai\dsh\lib\bin.js` 找到 dsh（也可用 `-DshBin` 显式指定）。
 
+### 开机自启（可选）
+
+```powershell
+.\install.ps1 -AutoStart        # 登录时自动启动托盘（启动文件夹方案，无需管理员）
+.\install.ps1 -RemoveAutoStart  # 取消开机自启
+```
+
 ## 工作原理
 
 - `dsh web` 就是个 Node 前台进程；`dsh-web.ps1` 用 `Start-Process` 以隐藏窗口拉起，PID 写入 `$env:DSH_HOME\dsh-web\dsh-web.pid`，日志在 `dsh-web.log` / `dsh-web.err.log`
@@ -111,7 +120,8 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 - **双击 `.ps1` 打开的是记事本** — 用 `dsh-tray.cmd` 或桌面快捷方式（内部已带 `-ExecutionPolicy Bypass`）
 - **`stop` 把网页关掉了** — 这是"停止 GUI"的本意；重新 `start` 后刷新页面即恢复会话
-- **端口被占用** — 换 `-Port` 或用托盘改端口；`--port 0` 可让系统随机分配
+- **端口被占用** — 换 `-Port` 或用托盘改端口；`--port 0` 可让系统随机分配（`status` 会显示实际端口）
+- **想开机自启** — `.\install.ps1 -AutoStart`（启动文件夹方案）；取消用 `-RemoveAutoStart`
 - **托盘图标不刷新** — 右键「退出托盘」重新启动一次（Windows 图标缓存）
 - **找不到 dsh** — 确认已在脚本同目录 `npm install @deepseek-ai/dsh`，或用 `-DshBin` 指定 `bin.js` 路径
 
@@ -119,14 +129,17 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 ```
 dsh-harness-control/
-├── dsh-web.ps1          # CLI 控制器（start/stop/status/restart）
-├── dsh-tray.ps1         # 系统托盘控制器
+├── dsh-web.ps1          # CLI 控制器（start/stop/status/restart/logs）
+├── dsh-tray.ps1         # 系统托盘控制器（含一键启动+自动开浏览器）
 ├── dsh-tray.cmd         # 双击启动器
 ├── dsh-tray.ico         # DeepSeek 鲸鱼图标（可删，用 make-tray-icon.cjs 重新生成）
 ├── make-tray-icon.cjs   # 图标生成器（node make-tray-icon.cjs [输出] [颜色]）
-├── install.ps1          # 桌面快捷方式安装脚本
+├── install.ps1          # 桌面快捷方式 + 开机自启安装脚本
 ├── package.json         # npm scripts + @deepseek-ai/dsh 依赖
-└── README.md
+├── docs/tray-menu.png   # 托盘菜单截图
+├── .github/workflows/   # CI：BOM/语法/PSScriptAnalyzer 检查
+├── README.md / README.en.md
+└── LICENSE / .gitignore / .gitattributes
 ```
 
 ## 许可

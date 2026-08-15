@@ -17,6 +17,8 @@
   .\dsh-web.ps1 status                # show whether it is running
   .\dsh-web.ps1 restart -Port 9000    # stop, then start on 9000
   .\dsh-web.ps1 stop                  # stop the instance on the default port
+  .\dsh-web.ps1 logs                  # show recent log output
+  .\dsh-web.ps1 logs -Tail 200 -Follow # tail the log and keep following
 
 .NOTES
   - Stopping the harness kills the Web GUI, including any live session.
@@ -26,7 +28,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Position = 0)]
-  [ValidateSet('start', 'stop', 'status', 'restart')]
+  [ValidateSet('start', 'stop', 'status', 'restart', 'logs')]
   [string]$Action = 'status',
 
   [int]$Port = 8081,
@@ -38,9 +40,13 @@ param(
 
   [string]$DshBin = '',
 
+  [int]$Tail = 50,
+
   [switch]$Console,
 
-  [switch]$OpenBrowser
+  [switch]$OpenBrowser,
+
+  [switch]$Follow
 )
 
 $ErrorActionPreference = 'Stop'
@@ -203,10 +209,24 @@ function Stop-Harness {
   }
 }
 
+function Show-Logs {
+  Write-Host "log: $LogFile"
+  Write-Host "err: $ErrFile"
+  Write-Host "--- $LogFile (tail $Tail) ---"
+  if (Test-Path $LogFile) { Get-Content $LogFile -Tail $Tail } else { Write-Host '(not created yet)' }
+  Write-Host "--- $ErrFile (tail $Tail) ---"
+  if (Test-Path $ErrFile) { Get-Content $ErrFile -Tail $Tail } else { Write-Host '(not created yet)' }
+  if ($Follow) {
+    Write-Host "--- following $LogFile (Ctrl+C to stop) ---"
+    Get-Content $LogFile -Tail $Tail -Wait
+  }
+}
+
 # --- dispatch ----------------------------------------------------------------
 switch ($Action) {
   'start'   { Start-Harness }
   'stop'    { Stop-Harness }
   'status'  { Write-Status | Out-Null }
   'restart' { Stop-Harness; Start-Sleep -Milliseconds 800; Start-Harness }
+  'logs'    { Show-Logs }
 }
