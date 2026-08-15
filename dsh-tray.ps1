@@ -69,6 +69,37 @@ function Open-Gui {
   Start-Process "http://127.0.0.1:$port"
 }
 
+# --- 开机自启（启动文件夹方案，用户级） ----------------------------------------
+function Get-AutoStartEntry {
+  $startup = [Environment]::GetFolderPath('Startup')
+  return (Join-Path $startup 'DSH Harness.cmd')
+}
+
+function Test-AutoStart {
+  return (Test-Path (Get-AutoStartEntry))
+}
+
+function Set-AutoStart {
+  param([bool]$Enable)
+  $entry = Get-AutoStartEntry
+  if ($Enable) {
+    $content = "@`n@echo off`nrem DSH Harness tray autostart (tray menu)`nstart `"`" powershell -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$($script:ScriptDir)\dsh-tray.ps1`"`n`"@"
+    [System.IO.File]::WriteAllText($entry, $content, (New-Object System.Text.UTF8Encoding($false)))
+  }
+  else {
+    if (Test-Path $entry) { Remove-Item $entry -Force }
+  }
+}
+
+# --- 托盘图标：运行蓝 / 停止灰 --------------------------------------------------
+function Set-TrayIcon {
+  param([bool]$Running)
+  $target = if ($Running) { $script:IconOn } else { $script:IconOff }
+  if ($script:currentIcon -eq $target) { return }
+  $script:notifyIcon.Icon = $target
+  $script:currentIcon = $target
+}
+
 # --- 托盘主体 ------------------------------------------------------------------
 function Show-Tray {
   # 单实例：托盘已在运行则直接退出（重复双击不会开两个托盘）
@@ -76,12 +107,14 @@ function Show-Tray {
   if (-not $script:mutex.WaitOne(0)) { return }
 
   $script:notifyIcon = New-Object System.Windows.Forms.NotifyIcon
-  $script:IconFile = Join-Path $script:ScriptDir 'dsh-tray.ico'
-  if (Test-Path $script:IconFile) {
-    $script:notifyIcon.Icon = New-Object System.Drawing.Icon($script:IconFile)
-  } else {
-    $script:notifyIcon.Icon = [System.Drawing.SystemIcons]::Application
-  }
+  $script:IconOnFile = Join-Path $script:ScriptDir 'dsh-tray.ico'
+  $script:IconOffFile = Join-Path $script:ScriptDir 'dsh-tray-off.ico'
+  $script:iconOnFromFile = $false; $script:iconOffFromFile = $false
+  if (Test-Path $script:IconOnFile) { $script:IconOn = New-Object System.Drawing.Icon($script:IconOnFile); $script:iconOnFromFile = $true }
+  else { $script:IconOn = [System.Drawing.SystemIcons]::Application }
+  if (Test-Path $script:IconOffFile) { $script:IconOff = New-Object System.Drawing.Icon($script:IconOffFile); $script:iconOffFromFile = $true }
+  else { $script:IconOff = $script:IconOn }
+  $script:currentIcon = $null
   $script:notifyIcon.Text = 'DSH Harness'
   $script:notifyIcon.Visible = $true
 
@@ -95,8 +128,12 @@ function Show-Tray {
   $miPort      = New-Object System.Windows.Forms.ToolStripMenuItem('端口设置…')
   $miOpen      = New-Object System.Windows.Forms.ToolStripMenuItem('打开界面')
   $miLogs      = New-Object System.Windows.Forms.ToolStripMenuItem('查看日志…')
+  $miAuto      = New-Object System.Windows.Forms.ToolStripMenuItem('开机自启')
+  $miUpdate    = New-Object System.Windows.Forms.ToolStripMenuItem('检查更新…')
   $sep2        = New-Object System.Windows.Forms.ToolStripSeparator
   $miExit      = New-Object System.Windows.Forms.ToolStripMenuItem('退出托盘')
+  $script:miAuto = $miAuto
+  $miAuto.Checked = Test-AutoStart
 
   $miStatus.Add_Click({
     $p = Get-ConfiguredPort
@@ -122,6 +159,20 @@ function Show-Tray {
       [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information) | Out-Null
   })
   $miOpen.Add_Click({ Open-Gui })
+  $miAuto.Add_Click({
+    $wantOn = -not (Test-AutoStart)
+    if ($wantOn) {
+      $r = [System.Windows.Forms.MessageBox]::Show(
+        "启用开机自启？`n登录后自动启动托盘，托盘会自动拉起后台 GUI 并打开浏览器。",
+        'DSH Harness 开机自启',
+        [System.Windows.Forms.MessageBoxButtons]::YesNo,
+        [System.Windows.Forms.MessageBoxIcon]::Question)
+      if ($r -ne [System.Windows.Forms.DialogResult]::Yes) { return }
+    }
+    Set-AutoStart -Enable $wantOn
+    $script:miAuto.Checked = Test-AutoStart
+  })
+  $miUpdate.Add_Click({ Start-Process 'https://github.com/Wutongdaozhi/dsh-harness-control/releases' })
   $miLogs.Add_Click({
     $log = Join-Path $script:StateDir 'dsh-web.log'
     $err = Join-Path $script:StateDir 'dsh-web.err.log'
@@ -135,13 +186,14 @@ function Show-Tray {
   $miExit.Add_Click({
     $script:timer.Stop()
     $script:notifyIcon.Visible = $false
-    $script:notifyIcon.Icon.Dispose()
+    try { if ($script:iconOnFromFile) { $script:IconOn.Dispose() } } catch { }
+    try { if ($script:iconOffFromFile -and $script:IconOff -ne $script:IconOn) { $script:IconOff.Dispose() } } catch { }
     $script:notifyIcon.Dispose()
     try { $script:mutex.ReleaseMutex() } catch { }
     [System.Windows.Forms.Application]::Exit()
   })
 
-  $menu.Items.AddRange(@($miStatus, $miStart, $miStop, $miRestart, $sep1, $miPort, $miOpen, $miLogs, $sep2, $miExit))
+  $menu.Items.AddRange(@($miStatus, $miStart, $miStop, $miRestart, $sep1, $miPort, $miOpen, $miLogs, $miAuto, $miUpdate, $sep2, $miExit))
   $script:notifyIcon.ContextMenuStrip = $menu
 
   # 双击托盘 = 打开界面
@@ -152,6 +204,8 @@ function Show-Tray {
   $script:timer.Interval = 2000
   $script:timer.add_Tick({
     $p = Get-ConfiguredPort
+    # 图标状态：运行蓝 / 停止灰
+    Set-TrayIcon -Running (Test-Listener -Port $p)
     # 一键启动：GUI 就绪后自动打开浏览器（只开一次）
     if (-not $script:autoBootOpened -and (Test-Listener -Port $p)) {
       Open-Gui
@@ -166,10 +220,12 @@ function Show-Tray {
   # 一键入口：GUI 未运行则自动拉起，运行中则直接打开浏览器
   $script:autoBootOpened = $false
   if (Test-Listener -Port (Get-ConfiguredPort)) {
+    Set-TrayIcon -Running $true
     Open-Gui
     $script:autoBootOpened = $true
   }
   else {
+    Set-TrayIcon -Running $false
     Invoke-DshCtlAction 'start'
   }
 

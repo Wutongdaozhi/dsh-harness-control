@@ -129,6 +129,16 @@ function Write-Status {
   }
 }
 
+function Rotate-Logs {
+  # 启动前轮转日志：保留 .1（最近一次）、.2（更早一次），防止无限膨胀
+  foreach ($f in @($LogFile, $ErrFile)) {
+    if (-not (Test-Path $f)) { continue }
+    if (Test-Path "$f.2") { Remove-Item "$f.2" -Force }
+    if (Test-Path "$f.1") { Move-Item "$f.1" "$f.2" -Force }
+    Move-Item $f "$f.1" -Force
+  }
+}
+
 function Open-GuiBrowser {
   Start-Process "http://$BindHost`:$Port"
 }
@@ -139,6 +149,7 @@ function Start-Harness {
     if ($OpenBrowser) { Open-GuiBrowser }
     return
   }
+  Rotate-Logs
   if (-not (Test-Path $Bin)) {
     throw @"
 dsh CLI not found: $Bin

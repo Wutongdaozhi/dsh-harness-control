@@ -70,8 +70,12 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 ### 系统托盘（后台管理）
 
-右键菜单：**启动 · 停止 · 重启 · 端口设置… · 打开界面 · 查看日志… · 退出托盘**
+右键菜单：**启动 · 停止 · 重启 · 端口设置… · 打开界面 · 查看日志… · 开机自启 · 检查更新… · 退出托盘**
 （"退出托盘"只关托盘，不停 GUI；悬停看实时状态，双击直接打开网页；端口设置存 `$env:DSH_HOME\dsh-web\tray-config.json`，改完点重启生效）
+
+托盘图标会随状态变色：**运行中 = 蓝色鲸鱼，停止 = 灰色鲸鱼**，一眼可知 GUI 是否在线。
+「开机自启」菜单项带 ✓ 显示当前状态，开启前会询问确认（与 `install.ps1 -AutoStart` 一致）。
+「检查更新…」打开 GitHub Releases 页，方便跟进新版本。
 
 ### 命令行（高级）
 
@@ -105,13 +109,22 @@ npm install                       # 安装 @deepseek-ai/dsh
 
 ### 开机自启（可选）
 
+- **托盘菜单「开机自启」**：带 ✓ 显示当前状态，开启前询问确认
+- 或命令行：
+
 ```powershell
 .\install.ps1 -AutoStart        # 登录时自动启动托盘（会先询问确认）
 .\install.ps1 -AutoStart -Yes   # 跳过确认直接启用（脚本化场景）
 .\install.ps1 -RemoveAutoStart  # 取消开机自启
 ```
 
-> 开机自启会改变系统行为（每次登录自动运行托盘并拉起 GUI），**启用前必须经过你确认同意**；取消随时可执行 `-RemoveAutoStart`。
+> 开机自启会改变系统行为（每次登录自动运行托盘并拉起 GUI），**启用前必须经过你确认同意**；取消随时可执行 `-RemoveAutoStart` 或托盘菜单取消勾选。
+
+### 卸载
+
+```powershell
+.\uninstall.ps1        # 移除桌面快捷方式、开机自启项；删除状态目录前会询问确认
+```
 
 ## 工作原理
 
@@ -135,9 +148,11 @@ dsh-harness-control/
 ├── dsh-web.ps1          # CLI 控制器（start/stop/status/restart/logs）
 ├── dsh-tray.ps1         # 系统托盘控制器（含一键启动+自动开浏览器）
 ├── dsh-tray.cmd         # 双击启动器
-├── dsh-tray.ico         # DeepSeek 鲸鱼图标（可删，用 make-tray-icon.cjs 重新生成）
+├── dsh-tray.ico         # 运行态蓝色鲸鱼图标（可删，用 make-tray-icon.cjs 重新生成）
+├── dsh-tray-off.ico     # 停止态灰色鲸鱼图标
 ├── make-tray-icon.cjs   # 图标生成器（node make-tray-icon.cjs [输出] [颜色]）
 ├── install.ps1          # 桌面快捷方式 + 开机自启安装脚本
+├── uninstall.ps1        # 卸载脚本（快捷方式/自启项/状态目录）
 ├── package.json         # npm scripts + @deepseek-ai/dsh 依赖
 ├── docs/tray-menu.png   # 托盘菜单截图
 ├── .github/workflows/   # CI：BOM/语法/PSScriptAnalyzer 检查

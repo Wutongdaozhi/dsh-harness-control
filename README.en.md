@@ -38,7 +38,9 @@ double-click "DSH Harness"
   └─ system tray appears (whale icon in the notification area)
 ```
 
-From then on, manage everything from the tray context menu: **Start · Stop · Restart · Port settings… · Open GUI · View logs · Exit** (Exit only closes the tray, not the GUI). Only one tray instance can run at a time.
+From then on, manage everything from the tray context menu: **Start · Stop · Restart · Port settings… · Open GUI · View logs · Autostart · Check updates… · Exit** (Exit only closes the tray, not the GUI). Only one tray instance can run at a time.
+
+The tray icon reflects state: **blue whale = running, gray whale = stopped**. The "Autostart" menu item shows a ✓ for the current state and asks for confirmation before enabling.
 
 ## CLI (advanced)
 
@@ -72,13 +74,22 @@ If you already have a directory with `npm install @deepseek-ai/dsh`, just copy `
 
 ## Autostart (optional)
 
+- **Tray menu "Autostart"**: shows a ✓ for the current state, asks for confirmation before enabling
+- Or via CLI:
+
 ```powershell
 .\install.ps1 -AutoStart        # start the tray at logon (asks for confirmation)
 .\install.ps1 -AutoStart -Yes   # skip the confirmation prompt (scripting)
 .\install.ps1 -RemoveAutoStart  # disable autostart
 ```
 
-> Autostart changes system behavior (runs the tray and starts the GUI at every logon); the installer **asks for your explicit consent before enabling it**. Remove anytime with `-RemoveAutoStart`.
+> Autostart changes system behavior (runs the tray and starts the GUI at every logon); the installer **asks for your explicit consent before enabling it**. Remove anytime with `-RemoveAutoStart` or by unchecking the tray menu item.
+
+## Uninstall
+
+```powershell
+.\uninstall.ps1        # removes the desktop shortcut and autostart entry; asks before deleting the state directory
+```
 
 ## How it works
 
@@ -102,9 +113,11 @@ dsh-harness-control/
 ├── dsh-web.ps1          # CLI controller (start/stop/status/restart/logs)
 ├── dsh-tray.ps1         # system-tray controller (one-click start + browser)
 ├── dsh-tray.cmd         # double-click launcher
-├── dsh-tray.ico         # DeepSeek whale icon (regenerate with make-tray-icon.cjs)
+├── dsh-tray.ico         # blue whale icon (running); regenerate with make-tray-icon.cjs
+├── dsh-tray-off.ico     # gray whale icon (stopped)
 ├── make-tray-icon.cjs   # icon generator (node make-tray-icon.cjs [out] [color])
 ├── install.ps1          # desktop shortcut + autostart installer
+├── uninstall.ps1        # uninstaller (shortcut / autostart / state dir)
 ├── package.json         # npm scripts + @deepseek-ai/dsh dependency
 ├── docs/tray-menu.png   # tray menu screenshot
 ├── .github/workflows/   # CI: BOM / parse / PSScriptAnalyzer checks
